@@ -1,17 +1,16 @@
-# Dockerfile for Delta Auth API
-FROM python:3.11-slim
+﻿FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install dependencies
-COPY requirements.txt .
+# Copy api directory
+COPY api/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application code
-COPY . .
+COPY api/ .
 
 # Create data directory for SQLite
 RUN mkdir -p /app/data
 
-# Start command
+EXPOSE 8000
+
 CMD ["python", "main.py"]
