@@ -46,7 +46,7 @@ if os.path.exists(static_dir):
     app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 class ConfirmRequest(BaseModel):
-    credential: str
+    credential: str = ""
 
 class WebClaimRequest(BaseModel):
     code: str
@@ -100,8 +100,9 @@ def confirm_auth(code: str, req: ConfirmRequest):
         db.close()
         raise HTTPException(400, "授权码已使用")
     now = _now()
+    credential = req.credential if req.credential else f"wechat_user_{now}_{secrets.token_hex(8)}"
     db.execute("UPDATE auth_codes SET status='confirmed', credential=?, confirmed_at=? WHERE code=?",
-               (req.credential, now, code))
+               (credential, now, code))
     db.commit()
     db.close()
     return {"status": "confirmed", "code": code}

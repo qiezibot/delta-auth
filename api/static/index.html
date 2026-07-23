@@ -273,7 +273,13 @@ async function scanConfirm() {
     btn.innerHTML = '<span class="spinner"></span>确认中...';
     showStatus('⏳ 正在确认授权...', 'pending');
     try {
-        const r = await fetch(API + '/api/auth/confirm/' + code, { method: 'POST' });
+        /* 微信扫码后，此处应传入微信侧获取的 credential */
+        const mockCred = 'wechat_user_' + Date.now().toString(36) + '_delta';
+        const r = await fetch(API + '/api/auth/confirm/' + code, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({credential: mockCred})
+        });
         if (r.ok) {
             const data = await r.json();
             setStep(2, 'done'); setStep(3, 'active');
