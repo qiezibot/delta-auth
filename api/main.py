@@ -8,7 +8,7 @@ from datetime import datetime
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel
 import sqlite3
 
@@ -61,7 +61,11 @@ def root():
     """返回前端页面"""
     idx = os.path.join(static_dir, "index.html")
     if os.path.exists(idx):
-        return FileResponse(idx, media_type="text/html")
+        return FileResponse(idx, media_type="text/html", headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0"
+        })
     return {"status": "ok", "version": "1.0.0", "name": "Delta Auth API"}
 
 @app.get("/api/status")
