@@ -130,6 +130,15 @@ h1 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
     </div>
     <button class="btn" id="createBtn" onclick="createAuth()">生成授权码</button>
     <button class="btn secondary" id="resetBtn" onclick="resetAll()" style="display:none">重新生成</button>
+    <!-- 扫码确认窗口（默认隐藏，检测到 ?code=xxx 时显示） -->
+    <div id="scanConfirm" style="display:none">
+        <div class="code-box active" style="border-color:#6366f1">
+            <div class="code-label">待确认授权码</div>
+            <div class="code-value" id="scanCodeDisplay">-</div>
+        </div>
+        <button class="btn" id="confirmBtn" onclick="scanConfirm()">✅ 确认授权</button>
+        <button class="btn secondary" onclick="window.location.href=API">返回首页</button>
+    </div>
 </div>
 <div class="footer">Delta Auth v1.0 · <a href="/api/status" target="_blank">API 状态</a></div>
 
@@ -249,6 +258,69 @@ function copyCredential() {
         setTimeout(() => btn.textContent = '📋 复制凭证', 2000);
     });
 }
+
+/* ---- 扫码确认逻辑 ---- */
+function getQueryParam(name) {
+    const p = new URLSearchParams(window.location.search);
+    return p.get(name);
+}
+
+async function scanConfirm() {
+    const code = getQueryParam('code');
+    if (!code) return;
+    const btn = document.getElementById('confirmBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>确认中...';
+    showStatus('⏳ 正在确认授权...', 'pending');
+    try {
+        const r = await fetch(API + '/api/auth/confirm/' + code, { method: 'POST' });
+        if (r.ok) {
+            const data = await r.json();
+            setStep(2, 'done'); setStep(3, 'active');
+            showStatus('✅ 授权确认成功！正在获取凭证...', 'confirmed');
+            document.getElementById('scanConfirm').style.display = 'none';
+            document.getElementById('createBtn').style.display = 'none';
+            document.getElementById('resetBtn').style.display = 'block';
+            /* 自动获取凭证用于显示 */
+            const tk = await fetch(API + '/api/auth/claim/' + code);
+            if (tk.ok) {
+                const tkd = await tk.json();
+                const credStr = typeof tkd.credential === 'object'
+                    ? JSON.stringify(tkd.credential, null, 2)
+                    : tkd.credential;
+                document.getElementById('credentialContent').textContent = credStr;
+                document.getElementById('credentialBox').classList.add('active');
+                setStep(3, 'done');
+                showStatus('✅ 授权成功！凭证已获取', 'confirmed');
+            }
+        } else {
+            const err = await r.json();
+            showStatus('❌ ' + (err.detail || '确认失败'), 'error');
+            btn.disabled = false;
+            btn.innerHTML = '✅ 确认授权';
+        }
+    } catch(e) {
+        showStatus('❌ 网络错误: ' + e.message, 'error');
+        btn.disabled = false;
+        btn.innerHTML = '✅ 确认授权';
+    }
+}
+
+/* 页面加载时检测 ?code=xxx 参数 */
+document.addEventListener('DOMContentLoaded', function() {
+    const code = getQueryParam('code');
+    if (code) {
+        /* 隐藏生成授权码界面，显示确认界面 */
+        document.getElementById('createBtn').style.display = 'none';
+        document.getElementById('resetBtn').style.display = 'none';
+        document.getElementById('qrSection').classList.remove('active');
+        document.getElementById('codeBox').classList.remove('active');
+        document.getElementById('scanConfirm').style.display = 'block';
+        document.getElementById('scanCodeDisplay').textContent = code;
+        setStep(1, 'done'); setStep(2, 'active');
+        showStatus('📱 请确认授权', 'pending');
+    }
+});
 </script>
 </body>
 </html>
