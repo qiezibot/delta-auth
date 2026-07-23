@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Delta Auth — 扫码授权</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 100%);
+    color: #fff; min-height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+}
+.container {
+    max-width: 440px; width: 92%; margin: 20px auto;
+    background: rgba(255,255,255,0.03);
+    border-radius: 24px; padding: 36px 28px;
+    border: 1px solid rgba(255,255,255,0.06);
+    backdrop-filter: blur(10px); text-align: center;
+}
+.logo { font-size: 32px; margin-bottom: 4px; }
+h1 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+.subtitle { color: #888; font-size: 14px; margin-bottom: 28px; }
+.qr-section {
+    background: #fff; border-radius: 20px; padding: 28px;
+    display: none; justify-content: center; margin-bottom: 20px;
+}
+.qr-section.active { display: flex; }
+.qr-section img { width: 220px; height: 220px; display: block; }
+.code-box {
+    background: #1a1a2e; border: 1px solid #2a2a3e;
+    border-radius: 12px; padding: 14px 16px; margin-bottom: 16px;
+    display: none; word-break: break-all;
+}
+.code-box.active { display: block; }
+.code-label { font-size: 11px; color: #666; margin-bottom: 4px; }
+.code-value { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 13px; color: #ccc; }
+.status {
+    padding: 14px 20px; border-radius: 12px; font-size: 14px; margin-bottom: 16px; display: none;
+}
+.status.active { display: block; }
+.status.pending { background: #1a1a2e; color: #aaa; border: 1px solid #2a2a3e; }
+.status.confirmed { background: #0d2e1a; color: #4ade80; border: 1px solid #166534; }
+.status.error { background: #2e0d0d; color: #f87171; border: 1px solid #7f1d1d; }
+.spinner {
+    display: inline-block; width: 18px; height: 18px;
+    border: 2px solid #333; border-top: 2px solid #6366f1;
+    border-radius: 50%; animation: spin 1s linear infinite;
+    vertical-align: middle; margin-right: 8px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.btn {
+    display: block; width: 100%;
+    background: linear-gradient(135deg, #6366f1, #4f46e5);
+    color: #fff; border: none; padding: 16px 0; border-radius: 14px;
+    font-size: 16px; font-weight: 600; cursor: pointer;
+    transition: all .25s; margin-bottom: 12px;
+}
+.btn:hover { transform: translateY(-1px); box-shadow: 0 8px 25px rgba(99,102,241,0.3); }
+.btn:active { transform: scale(0.98); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+.btn.secondary { background: #1a1a2e; border: 1px solid #2a2a3e; color: #aaa; }
+.btn.secondary:hover { border-color: #6366f1; color: #fff; }
+.steps { margin-bottom: 28px; }
+.step {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 0; color: #555; font-size: 13px;
+}
+.step.active { color: #fff; }
+.step.done { color: #4ade80; }
+.step-num {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: #1a1a2e; border: 2px solid #2a2a3e;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 600; flex-shrink: 0;
+}
+.step.active .step-num { border-color: #6366f1; background: rgba(99,102,241,0.2); color: #6366f1; }
+.step.done .step-num { border-color: #4ade80; background: rgba(74,222,128,0.2); color: #4ade80; }
+.credential-box { display: none; margin-top: 16px; text-align: left; }
+.credential-box.active { display: block; }
+.credential-box h3 { font-size: 14px; color: #4ade80; margin-bottom: 10px; }
+.credential-box pre {
+    background: #0d2e1a; border: 1px solid #166534;
+    border-radius: 12px; padding: 16px; font-size: 11px;
+    color: #86efac; font-family: monospace; white-space: pre-wrap;
+    word-break: break-all; max-height: 200px; overflow: auto;
+}
+.copy-btn {
+    display: inline-block; margin-top: 10px;
+    background: #166534; color: #4ade80; border: none;
+    padding: 8px 20px; border-radius: 8px; font-size: 13px; cursor: pointer;
+}
+.copy-btn:hover { background: #15803d; }
+.footer { margin-top: 24px; color: #444; font-size: 11px; }
+.footer a { color: #6366f1; text-decoration: none; }
+</style>
+</head>
+<body>
+<div class="container">
+    <div class="logo">🎮</div>
+    <h1>Delta Auth</h1>
+    <p class="subtitle">扫码授权 · 安全登录</p>
+    <div class="steps">
+        <div class="step active" id="step1">
+            <div class="step-num">1</div>
+            <span>生成授权码</span>
+        </div>
+        <div class="step" id="step2">
+            <div class="step-num">2</div>
+            <span>微信扫码确认</span>
+        </div>
+        <div class="step" id="step3">
+            <div class="step-num">3</div>
+            <span>获取授权凭证</span>
+        </div>
+    </div>
+    <div class="qr-section" id="qrSection">
+        <img id="qrImage" src="" alt="QR Code">
+    </div>
+    <div class="code-box" id="codeBox">
+        <div class="code-label">授权码</div>
+        <div class="code-value" id="codeDisplay">-</div>
+    </div>
+    <div class="status" id="status"></div>
+    <div class="credential-box" id="credentialBox">
+        <h3>✅ 授权成功！凭证已获取</h3>
+        <pre id="credentialContent"></pre>
+        <button class="copy-btn" onclick="copyCredential()">📋 复制凭证</button>
+    </div>
+    <button class="btn" id="createBtn" onclick="createAuth()">生成授权码</button>
+    <button class="btn secondary" id="resetBtn" onclick="resetAll()" style="display:none">重新生成</button>
+</div>
+<div class="footer">Delta Auth v1.0 · <a href="/api/status" target="_blank">API 状态</a></div>
+
+<script>
+const API = window.location.origin;
+
+function showStatus(msg, type) {
+    const s = document.getElementById('status');
+    s.textContent = msg;
+    s.className = 'status active ' + type;
+}
+function hideStatus() { document.getElementById('status').className = 'status'; }
+function setStep(n, state) {
+    for (let i = 1; i <= 3; i++) {
+        const el = document.getElementById('step' + i);
+        el.className = 'step';
+        if (i === n) el.classList.add(state || 'active');
+        else if (i < n) el.classList.add('done');
+    }
+}
+
+let currentCode = null;
+let pollTimer = null;
+
+async function createAuth() {
+    const btn = document.getElementById('createBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>生成中...';
+    hideStatus();
+    
+    try {
+        const r = await fetch(API + '/api/auth/create', { method: 'POST' });
+        if (!r.ok) { throw new Error('服务器错误: ' + r.status); }
+        const data = await r.json();
+        currentCode = data.code;
+        
+        document.getElementById('qrSection').classList.add('active');
+        document.getElementById('qrImage').src = 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data='
+            + encodeURIComponent(API + '/?code=' + currentCode);
+        
+        document.getElementById('codeBox').classList.add('active');
+        document.getElementById('codeDisplay').textContent = currentCode;
+        
+        btn.style.display = 'none';
+        document.getElementById('resetBtn').style.display = 'block';
+        
+        setStep(1, 'done'); setStep(2, 'active');
+        showStatus('⏳ 请使用微信扫码确认授权...', 'pending');
+        startPolling();
+        
+    } catch(e) {
+        showStatus('❌ 创建失败: ' + e.message, 'error');
+        btn.disabled = false;
+        btn.innerHTML = '生成授权码';
+    }
+}
+
+async function startPolling() {
+    if (pollTimer) clearInterval(pollTimer);
+    pollTimer = setInterval(async () => {
+        if (!currentCode) return;
+        try {
+            const r = await fetch(API + '/api/auth/verify/' + currentCode);
+            if (!r.ok) return;
+            const data = await r.json();
+            if (data.status === 'confirmed') {
+                clearInterval(pollTimer); pollTimer = null;
+                setStep(2, 'done'); setStep(3, 'active');
+                showStatus('✅ 授权已确认，获取凭证...', 'confirmed');
+                await fetchCredential();
+            }
+        } catch(e) { /* ignore polling errors */ }
+    }, 2000);
+}
+
+async function fetchCredential() {
+    try {
+        const tk = await fetch(API + '/api/auth/claim/' + currentCode);
+        if (tk.ok) {
+            const tkd = await tk.json();
+            const credStr = typeof tkd.credential === 'object' 
+                ? JSON.stringify(tkd.credential, null, 2) 
+                : tkd.credential;
+            document.getElementById('credentialContent').textContent = credStr;
+            document.getElementById('credentialBox').classList.add('active');
+            setStep(3, 'done');
+            showStatus('✅ 授权成功！凭证已获取', 'confirmed');
+        } else {
+            const err = await tk.json();
+            showStatus('❌ ' + (err.detail || '获取失败'), 'error');
+        }
+    } catch(e) {
+        showStatus('❌ 获取失败: ' + e.message, 'error');
+    }
+}
+
+function resetAll() {
+    if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+    currentCode = null;
+    document.getElementById('qrSection').classList.remove('active');
+    document.getElementById('codeBox').classList.remove('active');
+    document.getElementById('credentialBox').classList.remove('active');
+    document.getElementById('createBtn').style.display = 'block';
+    document.getElementById('resetBtn').style.display = 'none';
+    document.getElementById('createBtn').disabled = false;
+    document.getElementById('createBtn').innerHTML = '生成授权码';
+    hideStatus();
+    setStep(1, 'active');
+    for (let i = 2; i <= 3; i++) document.getElementById('step' + i).className = 'step';
+}
+
+function copyCredential() {
+    const text = document.getElementById('credentialContent').textContent;
+    navigator.clipboard.writeText(text).then(() => {
+        const btn = document.querySelector('.copy-btn');
+        btn.textContent = '✅ 已复制';
+        setTimeout(() => btn.textContent = '📋 复制凭证', 2000);
+    });
+}
+</script>
+</body>
+</html>
