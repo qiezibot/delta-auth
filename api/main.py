@@ -56,12 +56,8 @@ def _now():
 
 # --- 路由 ---
 
-from fastapi import Request
-
-@app.api_route("/", methods=["GET", "HEAD"])
-def root(request: Request):
-    if request.method == "HEAD":
-        return Response(status_code=200)
+@app.get("/")
+def root():
     """返回前端页面"""
     idx = os.path.join(static_dir, "index.html")
     if os.path.exists(idx):
