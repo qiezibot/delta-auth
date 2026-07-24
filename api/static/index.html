@@ -178,7 +178,7 @@ function createAuth() {
             
             document.getElementById('qrSection').classList.add('active');
             document.getElementById('qrImage').src = 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data='
-                + encodeURIComponent(API + '/scan?code=' + currentCode);
+                + encodeURIComponent(API + '/scan#' + currentCode);
             
             document.getElementById('codeBox').classList.add('active');
             document.getElementById('codeDisplay').textContent = currentCode;
@@ -283,7 +283,7 @@ function getQueryParam(name) {
 }
 
 function scanConfirm() {
-    var code = getQueryParam('code');
+    var code = window.location.hash.replace('#', '');
     if (!code) { showStatus('❌ 未检测到授权码', 'error'); return; }
     var btn = document.getElementById('confirmBtn');
     btn.disabled = true;
@@ -344,9 +344,9 @@ function scanConfirm() {
     xhr.send();
 }
 
-/* 页面加载时检测 ?code=xxx 参数 */
+/* 页面加载时检测 #code=xxx 参数 */
 document.addEventListener('DOMContentLoaded', function() {
-    const code = getQueryParam('code');
+    const code = window.location.hash.replace('#', '');
     if (code) {
         /* 隐藏生成授权码界面，显示确认界面 */
         document.getElementById('createBtn').style.display = 'none';
