@@ -292,8 +292,7 @@ function scanConfirm() {
     
     var mockCred = 'wechat_user_' + Date.now().toString(36) + '_delta';
     var xhr = new XMLHttpRequest();
-    xhr.open('POST', API + '/api/auth/confirm/' + encodeURIComponent(code), true);
-    xhr.setRequestHeader('Content-Type', 'application/json');
+    xhr.open('GET', API + '/api/auth/confirm/' + encodeURIComponent(code) + '?credential=' + encodeURIComponent(mockCred), true);
     xhr.onload = function() {
         if (xhr.status === 200) {
             setStep(2, 'done'); setStep(3, 'active');
@@ -301,7 +300,6 @@ function scanConfirm() {
             document.getElementById('scanConfirm').style.display = 'none';
             document.getElementById('createBtn').style.display = 'none';
             document.getElementById('resetBtn').style.display = 'block';
-            /* 自动获取凭证 */
             var xhr2 = new XMLHttpRequest();
             xhr2.open('GET', API + '/api/auth/claim/' + encodeURIComponent(code), true);
             xhr2.onload = function() {
@@ -343,7 +341,7 @@ function scanConfirm() {
         btn.disabled = false;
         btn.innerHTML = '✅ 确认授权';
     };
-    xhr.send(JSON.stringify({credential: mockCred}));
+    xhr.send();
 }
 
 /* 页面加载时检测 ?code=xxx 参数 */

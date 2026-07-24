@@ -45,9 +45,6 @@ static_dir = os.path.join(os.path.dirname(__file__), "static")
 if os.path.exists(static_dir):
     app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
-class ConfirmRequest(BaseModel):
-    credential: str = ""
-
 class WebClaimRequest(BaseModel):
     code: str
 
@@ -104,9 +101,9 @@ def get_qrcode(code: str):
         raise HTTPException(404, "授权码不存在")
     return {"code": row["code"], "status": row["status"], "created_at": row["created_at"]}
 
-@app.post("/api/auth/confirm/{code}")
-def confirm_auth(code: str, req: ConfirmRequest):
-    """确认授权，存储凭证"""
+@app.api_route("/api/auth/confirm/{code}", methods=["GET", "POST"])
+def confirm_auth(code: str, credential: str = ""):
+    """确认授权，存储凭证（支持 GET 和 POST，方便微信扫码后调用）"""
     db = get_db()
     row = db.execute("SELECT * FROM auth_codes WHERE code=?", (code,)).fetchone()
     if not row:
@@ -116,7 +113,8 @@ def confirm_auth(code: str, req: ConfirmRequest):
         db.close()
         raise HTTPException(400, "授权码已使用")
     now = _now()
-    credential = req.credential if req.credential else f"wechat_user_{now}_{secrets.token_hex(8)}"
+    if not credential:
+        credential = f"wechat_user_{now}_{secrets.token_hex(8)}"
     db.execute("UPDATE auth_codes SET status='confirmed', credential=?, confirmed_at=? WHERE code=?",
                (credential, now, code))
     db.commit()
