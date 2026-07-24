@@ -127,7 +127,7 @@ def confirm_auth(code: str, credential: str = ""):
     db.close()
     return {"status": "confirmed", "code": code}
 
-@app.post("/api/auth/claim/{code}")
+@app.api_route("/api/auth/claim/{code}", methods=["GET", "POST"])
 def claim_auth(code: str):
     """网页端领取凭证（扫码确认后调用，不暴露密钥）"""
     db = get_db()
