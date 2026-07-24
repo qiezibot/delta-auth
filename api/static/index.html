@@ -137,7 +137,7 @@ h1 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
             <div class="code-value" id="scanCodeDisplay">-</div>
         </div>
         <button class="btn" id="confirmBtn" onclick="scanConfirm()">✅ 确认授权</button>
-        <button class="btn secondary" onclick="window.location.href=API">返回首页</button>
+        <button class="btn secondary" onclick="window.location.href=API + '/scan'">返回首页</button>
     </div>
 </div>
 <div class="footer">Delta Auth v1.0 · <a href="/api/status" target="_blank">API 状态</a></div>
@@ -178,7 +178,7 @@ function createAuth() {
             
             document.getElementById('qrSection').classList.add('active');
             document.getElementById('qrImage').src = 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data='
-                + encodeURIComponent(API + '/?code=' + currentCode);
+                + encodeURIComponent(API + '/scan?code=' + currentCode);
             
             document.getElementById('codeBox').classList.add('active');
             document.getElementById('codeDisplay').textContent = currentCode;

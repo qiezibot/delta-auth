@@ -68,6 +68,18 @@ def root():
         })
     return {"status": "ok", "version": "1.0.0", "name": "Delta Auth API"}
 
+@app.get("/scan")
+def scan_page():
+    """扫码确认页面（避免 ?code=xxx 导致 405）"""
+    idx = os.path.join(static_dir, "index.html")
+    if os.path.exists(idx):
+        return FileResponse(idx, media_type="text/html", headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0"
+        })
+    return {"status": "ok"}
+
 @app.get("/api/status")
 def api_status():
     return {"status": "ok", "version": "1.0.0", "secret_set": bool(os.environ.get("AUTH_SECRET"))}
