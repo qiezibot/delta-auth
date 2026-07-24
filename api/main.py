@@ -53,9 +53,13 @@ def _now():
 
 # --- 路由 ---
 
-@app.get("/")
-def root():
+from fastapi import Request
+
+@app.api_route("/", methods=["GET", "HEAD"])
+def root(request: Request):
     """返回前端页面"""
+    if request.method == "HEAD":
+        return Response(status_code=200)
     idx = os.path.join(static_dir, "index.html")
     if os.path.exists(idx):
         return FileResponse(idx, media_type="text/html", headers={
@@ -65,9 +69,11 @@ def root():
         })
     return {"status": "ok", "version": "1.0.0", "name": "Delta Auth API"}
 
-@app.get("/scan")
-def scan_page():
+@app.api_route("/scan", methods=["GET", "HEAD"])
+def scan_page(request: Request):
     """扫码确认页面（避免 ?code=xxx 导致 405）"""
+    if request.method == "HEAD":
+        return Response(status_code=200)
     idx = os.path.join(static_dir, "index.html")
     if os.path.exists(idx):
         return FileResponse(idx, media_type="text/html", headers={
